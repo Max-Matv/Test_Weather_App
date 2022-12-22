@@ -24,17 +24,20 @@ class CityListViewModel: CitylistProtocol {
     //MARK: - Add request for main page
     func addWeatherRequest(_ citys: [String]) {
         let group = DispatchGroup()
-        for city in citys {
+        let semaphore = DispatchSemaphore(value: 1)
+        DispatchQueue.concurrentPerform(iterations: citys.count) { index in
             group.enter()
-            addSingleRequest(city: city) { weather, error in
+            addSingleRequest(city: citys[index]) { weather, error in
                 guard let response = weather else {
                     group.leave()
-                    print("\(city) fail")
+                    print("\(citys[index]) fail")
                     return
                 }
+                semaphore.wait()
                 print("\(response.location.name) is loaded")
                 self.weather.append(response)
                 group.leave()
+                semaphore.signal()
             }
         }
         group.notify(queue: .main) {
